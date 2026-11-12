@@ -5,7 +5,13 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from actuarybench.ingestion.validation import (
+    ValidationResult,
+    validate_claims_data,
+    validate_exposure_data,
+)
 from actuarybench.synthetic import generate_synthetic_dataset
+from actuarybench.utils.hashing import dataframe_fingerprint
 
 
 @st.cache_data(show_spinner=False)
@@ -23,9 +29,44 @@ def init_state() -> None:
 def use_demo_workspace() -> None:
     exposures, claims = load_synthetic()
     st.session_state.data_source = "synthetic"
-    st.session_state.raw_exposures = exposures.copy()
-    st.session_state.raw_claims = claims.copy()
-    st.session_state.source_files = {
-        "exposures": "synthetic:generate_synthetic_dataset",
-        "claims": "synthetic:generate_synthetic_dataset",
+    set_dataset("exposures", exposures.copy(), "synthetic_demo_exposures", None, None)
+    set_dataset("claims", claims.copy(), "synthetic_demo_claims", None, None)
+
+
+def set_dataset(
+    kind: str,
+    mapped: pd.DataFrame,
+    filename: str,
+    file_sha256: str | None,
+    mapping: dict[str, str] | None,
+) -> None:
+    """Store a canonical-named dataset and its provenance; invalidates downstream results."""
+    st.session_state[f"mapped_{kind}"] = mapped
+    files = st.session_state.setdefault("source_files", {})
+    files[kind] = {
+        "filename": filename,
+        "file_sha256": file_sha256 or "",
+        "mapped_data_sha256": dataframe_fingerprint(mapped),
+        "mapping": mapping or {c: c for c in mapped.columns},
     }
+    for key in ("validation", "study_result"):
+        st.session_state.pop(key, None)
+
+
+def get_validation() -> tuple[ValidationResult, ValidationResult] | None:
+    """Validate current datasets (memoised in session state until data changes)."""
+    if "mapped_exposures" not in st.session_state or "mapped_claims" not in st.session_state:
+        return None
+    if "validation" not in st.session_state:
+        ev = validate_exposure_data(st.session_state.mapped_exposures)
+        cv = validate_claims_data(st.session_state.mapped_claims, ev)
+        st.session_state.validation = (ev, cv)
+    return st.session_state.validation
+
+
+def synthetic_banner() -> None:
+    if st.session_state.get("data_source") == "synthetic":
+        st.info(
+            "Synthetic demo data — not real insurer, member or claims data.",
+            icon=":material/science:",
+        )

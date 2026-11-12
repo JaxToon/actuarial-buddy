@@ -15,8 +15,8 @@ if st.session_state.get("data_source") == "synthetic":
         icon=":material/science:",
     )
 
-exp = st.session_state.raw_exposures
-clm = st.session_state.raw_claims
+exp = st.session_state.mapped_exposures
+clm = st.session_state.mapped_claims
 
 with st.container(horizontal=True):
     st.metric("Exposure records", f"{len(exp):,}", border=True)
