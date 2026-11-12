@@ -46,9 +46,9 @@ CLAIMS_COLUMNS = [
 
 # plan_code: (base current_rate_pmpm IDR, annual claim frequency per member, base severity IDR)
 PLANS = {
-    "PLAN_A": (95_000, 2.4, 420_000),
-    "PLAN_B": (150_000, 2.8, 560_000),
-    "PLAN_C": (240_000, 3.1, 780_000),
+    "PLAN_A": (95_000, 2.4, 300_000),
+    "PLAN_B": (150_000, 2.8, 400_000),
+    "PLAN_C": (240_000, 3.1, 560_000),
 }
 AGE_BANDS = {"18-29": 0.8, "30-39": 1.0, "40-49": 1.2, "50-64": 1.6}
 REGIONS = ["JAVA", "SUMATRA", "KALIMANTAN", "SULAWESI", "EAST"]

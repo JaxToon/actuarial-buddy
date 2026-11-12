@@ -13,6 +13,7 @@ PAGES = [
     "app_pages/overview.py",
     "app_pages/data_upload.py",
     "app_pages/validation.py",
+    "app_pages/experience_study.py",
 ]
 
 
@@ -40,3 +41,11 @@ def test_validation_page_shows_invalid_fixture_exclusions():
     at.run()
     assert not at.exception, at.exception
     assert any("excluded" in w.value for w in at.warning)
+
+
+def test_experience_study_runs_on_demo():
+    at = _app("app_pages/experience_study.py")
+    at.button[0].click()
+    at.run()
+    assert not at.exception, at.exception
+    assert any(m.label == "Claim cost PMPM (IDR)" for m in at.metric)

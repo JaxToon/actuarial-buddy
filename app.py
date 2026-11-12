@@ -20,6 +20,9 @@ page = st.navigation(
         st.Page("app_pages/overview.py", title="Overview", icon=":material/home:", default=True),
         st.Page("app_pages/data_upload.py", title="Data", icon=":material/upload_file:"),
         st.Page("app_pages/validation.py", title="Validation", icon=":material/fact_check:"),
+        st.Page(
+            "app_pages/experience_study.py", title="Experience study", icon=":material/analytics:"
+        ),
     ],
     position="top",
 )
