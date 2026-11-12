@@ -17,6 +17,10 @@ a qualified actuary's review; none are settled by this checklist.
 
 ## Before the synthetic walkthrough
 
+- [x] Medium issues triaged against the synthetic demo: none present in the demo data ([kit §2](M5_PRACTITIONER_VALIDATION_KIT.md))
+- [ ] Rehearse the demo script ([kit §3](M5_PRACTITIONER_VALIDATION_KIT.md)), including the deliberate D6 BLOCKED case
+- [ ] Participants never upload their own files
+
 - [ ] Use the synthetic workspace or uploads of the synthetic CSV/XLSX files only
 - [ ] Explain that non-aligned study periods are blocked pending the D6 decision; show the diagnostic as an open question **[ACTUARY]**
 - [ ] Present D6, D7, D8, D12 and D16 as open questions for practitioners
