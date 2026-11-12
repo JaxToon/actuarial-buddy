@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
 
+from actuarybench.config import DB_PATH
 from actuarybench.ingestion.validation import (
     ValidationResult,
     validate_claims_data,
@@ -49,7 +52,7 @@ def set_dataset(
         "mapped_data_sha256": dataframe_fingerprint(mapped),
         "mapping": mapping or {c: c for c in mapped.columns},
     }
-    for key in ("validation", "study_result"):
+    for key in ("validation", "study_result", "pricing_runs"):
         st.session_state.pop(key, None)
 
 
@@ -70,3 +73,8 @@ def synthetic_banner() -> None:
             "Synthetic demo data — not real insurer, member or claims data.",
             icon=":material/science:",
         )
+
+
+def db_path() -> Path:
+    """SQLite path; tests may override via session_state['db_path']."""
+    return Path(st.session_state.get("db_path", DB_PATH))

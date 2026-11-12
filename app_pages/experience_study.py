@@ -84,6 +84,7 @@ if run:
     )
     try:
         st.session_state.study_result = run_experience_study(exp, clm, cfg)
+        st.session_state.pop("pricing_runs", None)
     except StudyConfigError as exc:
         st.error(str(exc), icon=":material/error:")
         st.stop()

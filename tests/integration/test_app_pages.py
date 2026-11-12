@@ -14,6 +14,7 @@ PAGES = [
     "app_pages/data_upload.py",
     "app_pages/validation.py",
     "app_pages/experience_study.py",
+    "app_pages/assumptions_pricing.py",
 ]
 
 
@@ -49,3 +50,29 @@ def test_experience_study_runs_on_demo():
     at.run()
     assert not at.exception, at.exception
     assert any(m.label == "Claim cost PMPM (IDR)" for m in at.metric)
+
+
+def test_full_flow_study_assumptions_pricing(tmp_path):
+    at = AppTest.from_file(APP, default_timeout=120)
+    at.session_state["db_path"] = str(tmp_path / "t.db")
+    at.run()
+    at.switch_page("app_pages/experience_study.py")
+    at.run()
+    at.button[0].click()
+    at.run()
+    at.switch_page("app_pages/assumptions_pricing.py")
+    at.run()
+    assert not at.exception, at.exception
+    confirm = [c for c in at.checkbox if "equal weights" in c.label][0]
+    confirm.check()
+    save = [b for b in at.button if "Save new assumption" in b.label][0]
+    save.click()
+    at.run()
+    assert not at.exception, at.exception
+    assert any("Saved Base v1" in s.value for s in at.success), [e.value for e in at.error]
+    run_btn = [b for b in at.button if "Run pricing" in b.label][0]
+    run_btn.click()
+    at.run()
+    assert not at.exception, at.exception
+    runs = at.session_state["pricing_runs"]
+    assert len(runs) == 1 and runs[0].results["indicated_rate_pmpm"].notna().all()

@@ -17,3 +17,8 @@ qualified actuary before any operational use.**
 | D9 | Current rate per segment | Member-month-weighted average of `current_rate_pmpm` over records that supplied a positive rate. | Gives a rate comparable to PMPM claim cost. |
 | D10 | Loss ratio with partial premium | If any exposure row in a cell lacks premium, the cell's loss ratio is N/A (not computed on partial premium). | Avoids overstated loss ratios from incomplete denominators. |
 | D11 | Streamlit pages folder | Pages live in `app_pages/` with `st.navigation`, not `pages/`. | `pages/` triggers Streamlit's legacy auto-discovery. Calculation logic is still outside UI files. |
+| D12 | Current rate for indicated change | Member-month-weighted current rate of the segment's **latest** experience period. | Rates change by year; the latest period is the closest proxy for the rate in force. |
+| D13 | Weights in a pricing segment | If a period with positive weight has no exposure in a segment, that segment is BLOCKED (no re-normalisation). The UI only rescales weights whose sum is off by < 0.1% due to input rounding, and discloses it. | ACTUARIAL_METHODS §4: "Do not silently select weights." |
+| D14 | Equal default weights | The UI pre-fills equal weights but refuses to save them unless the user ticks an explicit confirmation. | ACTUARIAL_METHODS §4. |
+| D15 | 0% trend | Allowed only when marked illustrative or given a documented source; illustrative trend is shown as a warning on every result. | ACTUARIAL_METHODS §5. |
+| D16 | Elapsed months | User-entered. The UI suggests study-period midpoint → projection-period midpoint (365.25/12-day months); the user must confirm or override. | Trend is never estimated automatically. |

@@ -23,6 +23,11 @@ page = st.navigation(
         st.Page(
             "app_pages/experience_study.py", title="Experience study", icon=":material/analytics:"
         ),
+        st.Page(
+            "app_pages/assumptions_pricing.py",
+            title="Assumptions & pricing",
+            icon=":material/calculate:",
+        ),
     ],
     position="top",
 )
