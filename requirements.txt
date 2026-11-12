@@ -1,0 +1,11 @@
+# Runtime
+streamlit>=1.40
+pandas>=2.2
+numpy>=1.26
+pydantic>=2.6
+plotly>=5.20
+openpyxl>=3.1      # XLSX reading
+xlsxwriter>=3.1    # XLSX export
+# Dev
+pytest>=8.0
+ruff>=0.5

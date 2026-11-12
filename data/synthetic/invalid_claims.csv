@@ -1,0 +1,9 @@
+claim_id,exposure_id,service_date,reported_date,paid_amount,case_reserve,incurred_amount,claim_type,currency,_defect
+C1,EXP1,2025-03-10,2025-03-20,500000,0,500000,OUTPATIENT,IDR,valid
+C2,EXP1,2025-05-02,2025-05-15,300000,100000,400000,OUTPATIENT,IDR,valid
+C2,EXP2,2025-06-01,2025-06-09,200000,0,200000,DENTAL,IDR,duplicate claim_id
+C4,EXP999,2025-04-01,2025-04-10,250000,0,250000,OUTPATIENT,IDR,orphan claim (no exposure)
+C5,EXP2,2024-11-30,2024-12-05,150000,0,150000,OUTPATIENT,IDR,service_date outside coverage
+C6,EXP2,2025-07-07,2025-07-10,-90000,0,-90000,OUTPATIENT,IDR,negative paid_amount
+C7,EXP2,2025-08-01,2025-08-05,100000,50000,999000,OUTPATIENT,IDR,incurred != paid + case_reserve
+C8,EXP2,,2025-08-05,100000,0,100000,OUTPATIENT,IDR,missing service_date
