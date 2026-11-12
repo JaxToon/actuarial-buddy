@@ -1,9 +1,12 @@
 """Experience study over validated exposure and claims data.
 
 Study-period rules (documented method choices — see docs/METHOD_DECISIONS.md):
-- An exposure record is included only if its whole coverage period lies inside the study
-  period. Records that only partly overlap are excluded and counted; exposure is never
-  pro-rated, because no apportionment method is specified in ACTUARIAL_METHODS.md.
+- Supported study periods (D6, M4.2 safeguard): no exposure record may *partly* overlap the
+  study period. If any record straddles a boundary the study is BLOCKED with
+  :class:`UnsupportedStudyPeriodError`, because the partial-exposure convention (whole-record
+  vs overlap/pro-rata, day vs month basis, premium earning) has not been approved by an
+  actuary. Records wholly outside the period are excluded and counted. Exposure is never
+  pro-rated. See ``studies/exposure_diagnostics.py`` for a non-production comparison.
 - A claim is included if its exposure record is included, its service date lies in the
   study period, and (when ``reported_date`` is supplied) it was reported on or before the
   evaluation date.
@@ -28,6 +31,22 @@ SEGMENT_CANDIDATES = ("plan_code", "age_band", "region", "group_ref")
 
 class StudyConfigError(ValueError):
     """Invalid study configuration."""
+
+
+class UnsupportedStudyPeriodError(StudyConfigError):
+    """The study period cuts through exposure records (partial-exposure convention unapproved)."""
+
+    def __init__(self, rows: int, member_months: float, examples: list[str]) -> None:
+        self.rows = rows
+        self.member_months = member_months
+        self.examples = examples
+        super().__init__(
+            f"Unsupported study period: {rows:,} exposure record(s) ({member_months:,.0f} "
+            "member-months) start before or end after the study period. The partial-exposure "
+            "convention (decision D6) is pending actuarial approval, so the study is blocked "
+            "instead of producing biased results. Choose boundaries that do not cut through "
+            f"coverage periods. Examples: {', '.join(examples)}"
+        )
 
 
 @dataclass(frozen=True)
@@ -106,10 +125,22 @@ def _aggregate(
     t["claim_amount"] = t["claim_amount"].fillna(0.0)
     # Member-month-weighted current rate, only over records that supplied a rate.
     t["current_rate_pmpm"] = t["current_rate_pmpm_weighted"] / t["rate_mm"].where(t["rate_mm"] > 0)
+    # Share of member-months whose record supplied a positive current rate (0..1; N/A if E = 0).
+    mm = t["earned_member_months"]
+    t["current_rate_coverage"] = t["rate_mm"] / mm.where(mm > 0)
     t = add_metric_columns(t)
     t["low_exposure"] = t["earned_member_months"] < cfg.low_exposure_threshold_mm
     t["flag"] = t["low_exposure"].map({True: LOW_EXPOSURE_LABEL, False: ""})
-    return t[[*keys, *METRIC_COLUMNS, "current_rate_pmpm", "low_exposure", "flag"]]
+    return t[
+        [
+            *keys,
+            *METRIC_COLUMNS,
+            "current_rate_pmpm",
+            "current_rate_coverage",
+            "low_exposure",
+            "flag",
+        ]
+    ]
 
 
 def run_experience_study(
@@ -133,6 +164,12 @@ def run_experience_study(
     exp = exposures.copy()
     inside = (exp["coverage_start"] >= p0) & (exp["coverage_end"] <= p1)
     overlap = ~inside & (exp["coverage_start"] <= p1) & (exp["coverage_end"] >= p0)
+    if overlap.any():
+        raise UnsupportedStudyPeriodError(
+            int(overlap.sum()),
+            float(exp.loc[overlap, "earned_member_months"].sum()),
+            exp.loc[overlap, "exposure_id"].astype(str).head(5).tolist(),
+        )
     exclusions.append(
         {
             "record_type": "exposure",

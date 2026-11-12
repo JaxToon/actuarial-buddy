@@ -112,7 +112,8 @@ def upload_block(kind: str, fields) -> None:
         except ValueError as exc:
             st.error(str(exc))
             return
-        set_dataset(kind, mapped, up.name, table.sha256, mapping)
+        suffix = "." + up.name.rsplit(".", 1)[-1].lower()
+        set_dataset(kind, mapped, up.name, table.sha256, mapping, raw_upload=(suffix, content))
         st.session_state.data_source = "upload"
         st.success(f"{kind.capitalize()} mapped. Continue to Validation.", icon=":material/check:")
 

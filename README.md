@@ -66,11 +66,24 @@ need actuarial review.
 
 ## Status
 
-Milestones M0–M4 from [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) are implemented. Next: M5 —
-practitioner walkthroughs (see [docs/CUSTOMER_DISCOVERY.md](docs/CUSTOMER_DISCOVERY.md)).
-Compliance Watch ([docs/COMPLIANCE_AUTOMATION.md](docs/COMPLIANCE_AUTOMATION.md)) is deliberately
-not started.
+Milestones M0–M4 from [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) are implemented, followed by the
+M4.1 assurance audit ([report](docs/M4_1_ASSURANCE_REPORT.md)) and the M4.2 reliability fixes
+([report](docs/M4_2_IMPLEMENTATION_REPORT.md)). Next: M5 practitioner walkthroughs; see
+[docs/M5_READINESS_CHECKLIST.md](docs/M5_READINESS_CHECKLIST.md). Compliance Watch
+([docs/COMPLIANCE_AUTOMATION.md](docs/COMPLIANCE_AUTOMATION.md)) is deliberately not started.
 
-Known limitations: single-user local only; claims must be at claim grain; exposure records that
-straddle the study period are excluded rather than pro-rated; no IBNR/development, pooling or
-credibility; A/E comparison (P1) not implemented.
+### Known limitations
+
+- Single-user, local prototype. The run artifact store (`data/artifacts/`) is tamper-evident but not
+  access-controlled or encrypted, so it is not for sensitive insurer data.
+- Study periods that cut through any coverage record are **blocked**: the partial-exposure
+  convention (D6) awaits actuarial approval. The full data span is always supported.
+- The rate-change comparison is blocked when the latest period's current rate is missing or partial
+  (D12 basis pending review).
+- Claims must be at claim grain; reversals and recoveries are rejected (backlog).
+- No IBNR/development, pooling or credibility; A/E comparison (P1) is not implemented.
+- Recalculation uses the installed software. Cross-version execution reproducibility is not
+  claimed; the historical environment is recorded, not archived.
+
+Outstanding actuarial decisions are listed in [docs/METHOD_DECISIONS.md](docs/METHOD_DECISIONS.md)
+and the M4.1 report §11.

@@ -2,8 +2,12 @@
 
 A segment whose calculation is blocked (no exposure in a weighted period, zero exposure,
 invalid loads) gets status ``BLOCKED`` with the reason; it is never filled with a fallback.
-Current rate for the indicated change = member-month-weighted current rate of the segment's
-**latest** experience period (decision D12).
+Current rate for the indicated change (decision D12, M4.2): the member-month-weighted current
+rate of the **latest study experience period**, used only when every member-month of that
+period in the segment supplied a positive rate. Otherwise the comparison is BLOCKED
+(``change_status``) with the missing input named. There is no fallback to an earlier period or
+to a partial average. The indicated rate itself does not depend on the current rate and is
+still produced. The D12 interpretation remains open for practitioner/actuarial review.
 """
 
 from __future__ import annotations
@@ -21,6 +25,8 @@ from actuarybench.studies.weighting import WeightingError, calculate_weighted_pu
 ALL_SEGMENTS = "ALL"
 OK = "OK"
 BLOCKED = "BLOCKED"
+CURRENT_RATE_BASIS = "latest_experience_period_full_coverage"
+_FULL = 1.0 - 1e-12
 
 
 @dataclass(frozen=True)
@@ -29,6 +35,25 @@ class PricingRun:
     study: ExperienceStudyResult
     results: pd.DataFrame  # one row per segment (+ overall row "ALL")
     trace: pd.DataFrame  # per segment × period: member months, claims, PP, weight
+    current_rate_basis: str = CURRENT_RATE_BASIS
+
+
+def _current_rate(periods: pd.DataFrame, latest_period: int) -> tuple[float | None, str]:
+    """Return (rate, "") or (None, reason). Never substitutes another period's rate."""
+    row = periods[periods["experience_period"] == latest_period]
+    if row.empty or not float(row["earned_member_months"].iloc[0]) > 0:
+        return None, f"no exposure in latest experience period {latest_period}"
+    cov = row["current_rate_coverage"].iloc[0] if "current_rate_coverage" in row else None
+    if cov is None or pd.isna(cov) or cov <= 0:
+        return None, (
+            f"current_rate_pmpm not supplied for latest experience period {latest_period}"
+        )
+    if cov < _FULL:
+        return None, (
+            f"current_rate_pmpm missing for {1 - cov:.1%} of member-months in latest "
+            f"experience period {latest_period}"
+        )
+    return float(row["current_rate_pmpm"].iloc[0]), ""
 
 
 def _segment_label(keys: tuple, dims: tuple[str, ...]) -> str:
@@ -79,8 +104,7 @@ def _price_one(
         w = calculate_weighted_pure_premium(full, a.weighting_method, a.period_weights)
         trace = w.periods.assign(segment=label)
         tp = project_claim_cost(w.weighted_pure_premium, a.annual_trend, a.elapsed_months)
-        latest = periods.dropna(subset=["current_rate_pmpm"]).sort_values("experience_period")
-        current = float(latest["current_rate_pmpm"].iloc[-1]) if len(latest) else None
+        current, change_reason = _current_rate(periods, max(all_periods))
         pr = calculate_indicated_rate(
             tp.projected_pure_premium,
             a.fixed_expense_pmpm,
@@ -90,7 +114,9 @@ def _price_one(
             current,
         )
         if current is None:
-            warnings.append("No current rate; change not calculated")
+            row |= {"change_status": BLOCKED, "change_blocked_reason": change_reason}
+        else:
+            row |= {"change_status": OK, "change_blocked_reason": ""}
         row |= {
             "weighted_pure_premium": w.weighted_pure_premium,
             "trend_factor": tp.trend_factor,
@@ -102,7 +128,12 @@ def _price_one(
             "indicated_change": pr.indicated_change,
         }
     except (WeightingError, TrendError, PricingError) as exc:
-        row |= {"status": BLOCKED, "blocked_reason": str(exc)}
+        row |= {
+            "status": BLOCKED,
+            "blocked_reason": str(exc),
+            "change_status": BLOCKED,
+            "change_blocked_reason": "indicated rate blocked",
+        }
     row["warnings"] = "; ".join(warnings)
     return row, trace
 
@@ -153,6 +184,8 @@ def run_pricing(study: ExperienceStudyResult, assumptions: AssumptionSet) -> Pri
         "indicated_rate_pmpm",
         "current_rate_pmpm",
         "indicated_change",
+        "change_status",
+        "change_blocked_reason",
         "warnings",
     ]
     results = pd.DataFrame(rows).reindex(columns=cols)

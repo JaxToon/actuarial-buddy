@@ -16,3 +16,4 @@ data/outputs/*
 *.sqlite3
 .streamlit/secrets.toml
 .DS_Store
+data/artifacts/

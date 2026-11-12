@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import date
 
-import pandas as pd
 import streamlit as st
 from pydantic import ValidationError
 from ui.state import db_path, synthetic_banner
@@ -215,4 +214,7 @@ with tab_run:
                     ),
                     hide_index=True,
                 )
-                st.dataframe(pd.DataFrame([res.set_index("segment").loc[seg]]).T, width="content")
+                trace_row = (
+                    res.set_index("segment").loc[[seg]].T.astype(str)
+                )  # mixed types: display as text
+                st.dataframe(trace_row, width="content")

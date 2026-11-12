@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import streamlit as st
+from ui.state import get_validation
 
 st.title("ActuaryBench")
 st.caption("Group-health experience study & preliminary pricing indication workbench")
@@ -18,15 +19,25 @@ if st.session_state.get("data_source") == "synthetic":
 exp = st.session_state.mapped_exposures
 clm = st.session_state.mapped_claims
 
+# Uploaded data is held as text until validation parses it, so numeric totals are taken
+# only from the validated (typed) exposure rows — never from the raw mapped columns.
+validation = get_validation()
 with st.container(horizontal=True):
     st.metric("Exposure records", f"{len(exp):,}", border=True)
     st.metric("Claim records", f"{len(clm):,}", border=True)
-    if "earned_member_months" in exp:
+    if validation is not None and validation[0].ok:
+        ev = validation[0]
         st.metric(
-            "Earned member-months (raw, unvalidated)",
-            f"{exp['earned_member_months'].sum():,.0f}",
+            "Earned member-months (validated rows)",
+            f"{ev.clean['earned_member_months'].sum():,.0f}",
+            help=f"{ev.rows_out:,} of {ev.rows_in:,} exposure rows passed validation.",
             border=True,
         )
+if validation is not None and not validation[0].ok:
+    st.warning(
+        "Exposure data is not structurally valid yet: " + "; ".join(validation[0].schema_errors),
+        icon=":material/warning:",
+    )
 
 st.subheader("Workflow")
 st.markdown(

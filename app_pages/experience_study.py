@@ -11,10 +11,16 @@ from ui.format import format_metrics_table
 from ui.state import get_validation, synthetic_banner
 
 from actuarybench.config import DEFAULT_LOW_EXPOSURE_THRESHOLD_MM
+from actuarybench.studies.exposure_diagnostics import (
+    DIAGNOSTIC_LABEL,
+    boundary_records,
+    compare_exposure_conventions,
+)
 from actuarybench.studies.segmentation import (
     SEGMENT_CANDIDATES,
     StudyConfig,
     StudyConfigError,
+    UnsupportedStudyPeriodError,
     run_experience_study,
 )
 
@@ -85,6 +91,27 @@ if run:
     try:
         st.session_state.study_result = run_experience_study(exp, clm, cfg)
         st.session_state.pop("pricing_runs", None)
+    except UnsupportedStudyPeriodError as exc:
+        st.session_state.pop("study_result", None)
+        st.session_state.pop("pricing_runs", None)
+        st.error(f"BLOCKED — {exc}", icon=":material/block:")
+        st.info(
+            f"The full data span {min_d:%Y-%m-%d} → {max_d:%Y-%m-%d} is always supported. "
+            "Calendar-aligned periods are supported when coverage records are calendar-aligned.",
+            icon=":material/info:",
+        )
+        with st.expander("Exposure-convention diagnostic (not used for any result)"):
+            st.warning(DIAGNOSTIC_LABEL, icon=":material/science:")
+            st.dataframe(
+                compare_exposure_conventions(exp, clm, cfg.period_start, cfg.period_end, basis),
+                hide_index=True,
+            )
+            st.caption("Boundary records (first 200):")
+            st.dataframe(
+                boundary_records(exp, cfg.period_start, cfg.period_end).head(200),
+                hide_index=True,
+            )
+        st.stop()
     except StudyConfigError as exc:
         st.error(str(exc), icon=":material/error:")
         st.stop()
