@@ -1,43 +1,76 @@
-# ActuaryBench — MVP Starter Pack
+# ActuaryBench
 
-Working name: **ActuaryBench**  
-Product wedge: **Group Health Experience Study & Pricing Indication Workbench**  
-Document status: product/engineering proposal, not an actuarial standard or regulatory interpretation.  
-Research snapshot: **12 November 2026**.
+Local-first prototype workbench for **group-health experience studies and preliminary pricing
+indications**: data import → validation → experience study → assumptions & scenarios → pricing
+indication → reproducible report.
 
-## What this pack contains
+> **Prototype.** Not a production actuarial system, not a regulatory reporting or
+> insurance-contract accounting tool, and not a substitute for review by a qualified actuary.
+> The demo uses **synthetic data only**. Outputs are preliminary indications, not filed tariffs,
+> quotes or binding premiums.
 
-- `PRD.md` — product scope, personas, workflows, functional requirements and acceptance criteria.
-- `ACTUARIAL_METHODS.md` — definitions, transparent formulas, calculation boundaries and test cases.
-- `ARCHITECTURE.md` — practical local-first architecture for the first prototype and SaaS evolution path.
-- `CLAUDE.md` — persistent project instructions/guardrails for Claude Code.
-- `START_PROMPT.md` — initial prompt to paste into Claude Code.
-- `RESEARCH_NOTES.md` — public-source findings and links used in the product decision.
-- `CUSTOMER_DISCOVERY.md` — outreach, interview guide and validation plan for someone without an existing industry network.
-
-## Recommended build order
-
-1. Put these documents in the project root (or copy `CLAUDE.md` to the root and the rest into `docs/`).
-2. Ask Claude Code to inspect the repository and implement only Milestone M0: project scaffold and synthetic demo dataset.
-3. Verify the synthetic-data workflow and automated tests before moving to experience study calculations.
-4. Add the pricing indication module only after the experience metrics are independently checked.
-5. Do not use real policyholder or claims data in the public demo. Do not describe outputs as compliant, approved or production-ready.
-6. Treat regulatory monitoring as a later controlled-change module; detected publications must not silently alter calculations.
-
-## Run target for the first prototype
-
-The prototype is intended to run locally:
+## Run locally
 
 ```bash
 python -m venv .venv
-# Windows PowerShell: .venv\\Scripts\\Activate.ps1
+# Windows PowerShell: .venv\Scripts\Activate.ps1
 # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Claude Code should create the actual `requirements.txt`, source code, synthetic data, tests and app during implementation. These docs are specifications, not runnable application code.
+The app opens in a synthetic demo workspace. Python 3.11+.
 
-## Compliance automation design
+```bash
+python -m pytest            # unit + integration tests (incl. Streamlit AppTest page runs)
+ruff check . && ruff format --check .
+python scripts/generate_synthetic_data.py   # regenerate data/synthetic/*
+```
 
-See [COMPLIANCE_AUTOMATION.md](COMPLIANCE_AUTOMATION.md) for the proposed source-monitoring, document-diff, human-review and versioned-rule-pack architecture. Compliance Watch is deliberately staged after the core experience/pricing workflow; no regulatory update may silently change calculations.
+## Workflow (app pages)
+
+| Page | What it does |
+|---|---|
+| Overview | Demo workspace, scope and limitations |
+| Data | Upload CSV/XLSX, preview + column profile, explicit column mapping, templates |
+| Validation | Row-level errors/warnings with reason codes, reconciliation before/after exclusions, XLSX/CSV report |
+| Experience study | Study period, evaluation date, claim basis (incurred/paid), configurable segments, low-exposure flags; member-months, frequency per 1,000 MY, severity, PMPM, loss ratio by segment and period |
+| Assumptions & pricing | Immutable versioned assumption sets; year- or exposure-weighted PP; trend; indicated rate PMPM with formula trace; scenario comparison |
+| Runs & reports | Save run → HTML report, results XLSX/CSV, JSON manifest (SQLite); run history; reproducibility verification |
+
+## Project layout
+
+```text
+app.py                     Streamlit entry (st.navigation)
+app_pages/                 UI pages only — no calculations
+ui/                        UI helpers (session state, formatting)
+src/actuarybench/
+  schemas/                 canonical fields, AssumptionSet (pydantic)
+  ingestion/               readers, mapping, validation
+  studies/                 metrics, segmentation (experience study), weighting
+  pricing/                 trend, indication, scenario runner
+  reporting/               workbook, HTML report, manifest/reproduce, export
+  persistence/             SQLite (immutable assumption sets and runs)
+  synthetic.py             deterministic synthetic data + invalid fixture
+data/synthetic/            generated demo data & template (committed)
+data/uploads, data/outputs gitignored
+docs/                      PRD, methods, architecture, method decisions log
+tests/                     unit/ and integration/
+```
+
+## Methods
+
+Formulas follow [docs/ACTUARIAL_METHODS.md](docs/ACTUARIAL_METHODS.md). Implementation choices
+where the spec was silent are logged in [docs/METHOD_DECISIONS.md](docs/METHOD_DECISIONS.md) and
+need actuarial review.
+
+## Status
+
+Milestones M0–M4 from [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) are implemented. Next: M5 —
+practitioner walkthroughs (see [docs/CUSTOMER_DISCOVERY.md](docs/CUSTOMER_DISCOVERY.md)).
+Compliance Watch ([docs/COMPLIANCE_AUTOMATION.md](docs/COMPLIANCE_AUTOMATION.md)) is deliberately
+not started.
+
+Known limitations: single-user local only; claims must be at claim grain; exposure records that
+straddle the study period are excluded rather than pro-rated; no IBNR/development, pooling or
+credibility; A/E comparison (P1) not implemented.

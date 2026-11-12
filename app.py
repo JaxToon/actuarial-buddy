@@ -28,6 +28,7 @@ page = st.navigation(
             title="Assumptions & pricing",
             icon=":material/calculate:",
         ),
+        st.Page("app_pages/run_history.py", title="Runs & reports", icon=":material/history:"),
     ],
     position="top",
 )

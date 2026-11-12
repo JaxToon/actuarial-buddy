@@ -15,6 +15,7 @@ PAGES = [
     "app_pages/validation.py",
     "app_pages/experience_study.py",
     "app_pages/assumptions_pricing.py",
+    "app_pages/run_history.py",
 ]
 
 
@@ -55,6 +56,7 @@ def test_experience_study_runs_on_demo():
 def test_full_flow_study_assumptions_pricing(tmp_path):
     at = AppTest.from_file(APP, default_timeout=120)
     at.session_state["db_path"] = str(tmp_path / "t.db")
+    at.session_state["outputs_dir"] = str(tmp_path / "out")
     at.run()
     at.switch_page("app_pages/experience_study.py")
     at.run()
@@ -76,3 +78,14 @@ def test_full_flow_study_assumptions_pricing(tmp_path):
     assert not at.exception, at.exception
     runs = at.session_state["pricing_runs"]
     assert len(runs) == 1 and runs[0].results["indicated_rate_pmpm"].notna().all()
+
+    at.switch_page("app_pages/run_history.py")
+    at.run()
+    [b for b in at.button if "Save run" in b.label][0].click()
+    at.run()
+    assert not at.exception, at.exception
+    assert any("Saved run" in s.value for s in at.success)
+    [b for b in at.button if "Verify" in b.label][0].click()
+    at.run()
+    assert not at.exception, at.exception
+    assert any("Reproduced" in s.value for s in at.success), [e.value for e in at.error]
